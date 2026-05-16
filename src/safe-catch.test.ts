@@ -25,7 +25,7 @@ describe("safeCatch", () => {
         errors.push(error);
       },
     );
-    await expect(fn()).rejects.toThrow("boom");
+    expect(fn()).rejects.toThrow("boom");
     expect(errors).toHaveLength(1);
     expect((errors[0] as Error).message).toBe("boom");
   });
