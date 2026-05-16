@@ -104,6 +104,30 @@ export const chain = <T, U>(
   fn: (data: T) => Result<U>,
 ): Result<U> => (result.ok ? fn(result.data) : result);
 
+/** Pattern-match a result with ok/err handlers. */
+export const match = <T, U>(
+  result: Result<T>,
+  handlers: {
+    ok: (data: T) => U;
+    err: (error: Err) => U;
+  },
+): U => (result.ok ? handlers.ok(result.data) : handlers.err(result));
+
+/** Wraps a promise into a Result, catching any rejection. */
+export const fromPromise = async <T>(
+  promise: Promise<T>,
+): Promise<Result<T>> => {
+  try {
+    return ok(await promise);
+  } catch (error) {
+    return err(
+      "UNHANDLED",
+      error instanceof Error ? error.message : "Unknown error",
+      error instanceof Error ? error : undefined,
+    );
+  }
+};
+
 /** Combines multiple results into a single result containing all data. */
 export const combine = <T extends readonly unknown[]>(
   results: { [K in keyof T]: Result<T[K]> },

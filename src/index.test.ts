@@ -3,9 +3,11 @@ import {
   chain,
   combine,
   err,
+  fromPromise,
   isErr,
   isOk,
   map,
+  match,
   ok,
   unwrap,
   unwrapOr,
@@ -212,6 +214,63 @@ describe("combine", () => {
     expect(isErr(result)).toBe(true);
     if (isErr(result)) {
       expect(result.code).toBe("MID");
+    }
+  });
+});
+
+// ─── match ───────────────────────────────────────────────────────────
+
+describe("match", () => {
+  test("given ok result, when matching, then calls ok handler with data", () => {
+    const result = match(ok(42), {
+      ok: (data) => `got ${data}`,
+      err: () => "error",
+    });
+    expect(result).toBe("got 42");
+  });
+
+  test("given err result, when matching, then calls err handler with error", () => {
+    const result = match(err("E", "msg"), {
+      ok: (data: unknown) => `got ${data}`,
+      err: (error) => `error ${error.code}`,
+    });
+    expect(result).toBe("error E");
+  });
+
+  test("given ok result, when matching returns number, then returns number", () => {
+    const result = match(ok(99), {
+      ok: (data) => data,
+      err: () => 0,
+    });
+    expect(result).toBe(99);
+  });
+});
+
+// ─── fromPromise ─────────────────────────────────────────────────────
+
+describe("fromPromise", () => {
+  test("given resolved promise, when wrapping, then returns ok", async () => {
+    const result = await fromPromise(Promise.resolve(42));
+    expect(isOk(result)).toBe(true);
+    if (isOk(result)) {
+      expect(result.data).toBe(42);
+    }
+  });
+
+  test("given rejected promise, when wrapping, then returns err", async () => {
+    const result = await fromPromise(Promise.reject(new Error("boom")));
+    expect(isErr(result)).toBe(true);
+    if (isErr(result)) {
+      expect(result.code).toBe("UNHANDLED");
+      expect(result.message).toBe("boom");
+    }
+  });
+
+  test("given rejected with non-Error, when wrapping, then returns generic message", async () => {
+    const result = await fromPromise(Promise.reject("string error"));
+    expect(isErr(result)).toBe(true);
+    if (isErr(result)) {
+      expect(result.message).toBe("Unknown error");
     }
   });
 });
