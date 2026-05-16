@@ -15,7 +15,7 @@
  */
 export const safeCatch = <T extends (...args: never[]) => Promise<unknown>>(
   fn: T,
-  onError?: (error: unknown) => void
+  onError?: (error: unknown) => void,
 ): T =>
   (async (...args: Parameters<T>) => {
     try {

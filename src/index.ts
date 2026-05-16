@@ -59,7 +59,7 @@ export const err = (
   code: string,
   message: string,
   cause?: Error,
-  context?: Record<string, string | number | boolean>
+  context?: Record<string, string | number | boolean>,
 ): Err => ({
   ok: false,
   code,
@@ -67,7 +67,7 @@ export const err = (
   cause: cause
     ? { name: cause.name, message: cause.message, stack: cause.stack }
     : undefined,
-  context
+  context,
 });
 
 // ---------------------------------------------------------------------------
@@ -101,12 +101,12 @@ export const map = <T, U>(result: Result<T>, fn: (data: T) => U): Result<U> =>
 /** Chains result-returning operations (flatMap). */
 export const chain = <T, U>(
   result: Result<T>,
-  fn: (data: T) => Result<U>
+  fn: (data: T) => Result<U>,
 ): Result<U> => (result.ok ? fn(result.data) : result);
 
 /** Combines multiple results into a single result containing all data. */
 export const combine = <T extends readonly unknown[]>(
-  results: { [K in keyof T]: Result<T[K]> }
+  results: { [K in keyof T]: Result<T[K]> },
 ): Result<T> => {
   const data: unknown[] = [];
   for (const result of results) {
@@ -120,4 +120,4 @@ export const combine = <T extends readonly unknown[]>(
 // safeCatch async handler wrapper
 // ---------------------------------------------------------------------------
 
-export { safeCatch } from './safe-catch';
+export { safeCatch } from "./safe-catch";
