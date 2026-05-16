@@ -1,5 +1,5 @@
 /**
- * @bitclaw-saas/result
+ * @bitclaw/result
  * Unified Result type for explicit error handling.
  *
  * Uses ok/err naming (Rust-inspired) for concise, idiomatic usage:
