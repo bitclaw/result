@@ -1,6 +1,6 @@
 {
   "name": "@bitclaw/result",
-  "version": "0.1.0",
+  "version": "1.0.0",
   "description": "Unified Result type for explicit error handling",
   "private": true,
   "type": "module",
