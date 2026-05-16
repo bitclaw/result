@@ -1,6 +1,6 @@
 {
   "name": "@bitclaw/result",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "Unified Result type for explicit error handling",
   "type": "module",
   "main": "./dist/index.js",
