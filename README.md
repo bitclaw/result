@@ -139,8 +139,7 @@ err('PLAN_LIMIT_REACHED', 'Upgrade to add more servers', undefined, {
 ## Testing
 
 ```bash
-cd packages/result
 bun test
 ```
 
-14 tests across 1 file.
+40 tests across 2 files.
