@@ -59,7 +59,7 @@ export const err = (
   code: string,
   message: string,
   cause?: Error,
-  context?: Record<string, string | number | boolean>,
+  context?: Record<string, string | number | boolean>
 ): Err => ({
   ok: false,
   code,
@@ -67,7 +67,7 @@ export const err = (
   cause: cause
     ? { name: cause.name, message: cause.message, stack: cause.stack }
     : undefined,
-  context,
+  context
 });
 
 // ---------------------------------------------------------------------------
@@ -101,7 +101,7 @@ export const map = <T, U>(result: Result<T>, fn: (data: T) => U): Result<U> =>
 /** Chains result-returning operations (flatMap). */
 export const chain = <T, U>(
   result: Result<T>,
-  fn: (data: T) => Result<U>,
+  fn: (data: T) => Result<U>
 ): Result<U> => (result.ok ? fn(result.data) : result);
 
 /** Pattern-match a result with ok/err handlers. */
@@ -110,27 +110,27 @@ export const match = <T, U>(
   handlers: {
     ok: (data: T) => U;
     err: (error: Err) => U;
-  },
+  }
 ): U => (result.ok ? handlers.ok(result.data) : handlers.err(result));
 
 /** Wraps a promise into a Result, catching any rejection. */
 export const fromPromise = async <T>(
-  promise: Promise<T>,
+  promise: Promise<T>
 ): Promise<Result<T>> => {
   try {
     return ok(await promise);
   } catch (error) {
     return err(
-      "UNHANDLED",
-      error instanceof Error ? error.message : "Unknown error",
-      error instanceof Error ? error : undefined,
+      'UNHANDLED',
+      error instanceof Error ? error.message : 'Unknown error',
+      error instanceof Error ? error : undefined
     );
   }
 };
 
 /** Combines multiple results into a single result containing all data. */
 export const combine = <T extends readonly unknown[]>(
-  results: { [K in keyof T]: Result<T[K]> },
+  results: { [K in keyof T]: Result<T[K]> }
 ): Result<T> => {
   const data: unknown[] = [];
   for (const result of results) {
@@ -144,4 +144,4 @@ export const combine = <T extends readonly unknown[]>(
 // safeCatch async handler wrapper
 // ---------------------------------------------------------------------------
 
-export { safeCatch } from "./safe-catch";
+export { safeCatch } from './safe-catch';
