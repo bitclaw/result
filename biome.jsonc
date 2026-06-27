@@ -45,13 +45,7 @@
         "noNonNullAssertion": "off",
         "noUselessElse": "error",
         "useConst": "error",
-        "useConsistentTypeDefinitions": {
-          "level": "error",
-          "fix": "safe",
-          "options": {
-            "style": "type"
-          }
-        },
+        "useConsistentTypeDefinitions": "off",
         "useExportType": "error",
         "useForOf": "error",
         "useImportType": "error",
