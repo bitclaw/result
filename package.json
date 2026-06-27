@@ -1,6 +1,6 @@
 {
   "name": "@bitclaw/result",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "Unified Result type for explicit error handling",
   "files": [
     "dist",
