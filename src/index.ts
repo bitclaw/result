@@ -27,6 +27,23 @@
 // Types
 // ---------------------------------------------------------------------------
 
+/**
+ * Augment this interface in your project to constrain valid error codes:
+ *
+ * ```ts
+ * declare module '@bitclaw/result' {
+ *   interface ErrCodeConstraint {
+ *     codes: 'NOT_FOUND' | 'UNAUTHORIZED' | ...; // or your ErrorCode union
+ *   }
+ * }
+ * ```
+ *
+ * Without augmentation, any string is accepted (backward compatible).
+ */
+export interface ErrCodeConstraint {
+  codes: string;
+}
+
 export type Ok<T> = {
   readonly ok: true;
   readonly data: T;
@@ -39,15 +56,15 @@ export type ErrorCause = {
   readonly stack?: string;
 };
 
-export type Err = {
+export type Err<C extends string = ErrCodeConstraint['codes']> = {
   readonly ok: false;
-  readonly code: string;
+  readonly code: C;
   readonly message: string;
   readonly cause?: ErrorCause;
   readonly context?: Record<string, string | number | boolean>;
 };
 
-export type Result<T> = Ok<T> | Err;
+export type Result<T, C extends string = ErrCodeConstraint['codes']> = Ok<T> | Err<C>;
 
 // ---------------------------------------------------------------------------
 // Constructors
@@ -55,12 +72,12 @@ export type Result<T> = Ok<T> | Err;
 
 export const ok = <T>(data: T): Ok<T> => ({ ok: true, data });
 
-export const err = (
-  code: string,
+export const err = <C extends ErrCodeConstraint['codes']>(
+  code: C,
   message: string,
   cause?: Error,
   context?: Record<string, string | number | boolean>
-): Err => ({
+): Err<C> => ({
   ok: false,
   code,
   message,
@@ -74,16 +91,16 @@ export const err = (
 // Type guards
 // ---------------------------------------------------------------------------
 
-export const isOk = <T>(result: Result<T>): result is Ok<T> => result.ok;
+export const isOk = <T, C extends string = ErrCodeConstraint['codes']>(result: Result<T, C>): result is Ok<T> => result.ok;
 
-export const isErr = <T>(result: Result<T>): result is Err => !result.ok;
+export const isErr = <T, C extends string = ErrCodeConstraint['codes']>(result: Result<T, C>): result is Err<C> => !result.ok;
 
 // ---------------------------------------------------------------------------
 // Utilities
 // ---------------------------------------------------------------------------
 
 /** Unwraps a successful result or throws on failure. */
-export const unwrap = <T>(result: Result<T>): T => {
+export const unwrap = <T, C extends string = ErrCodeConstraint['codes']>(result: Result<T, C>): T => {
   if (result.ok) return result.data;
   const error = new Error(result.message);
   error.cause = result.cause;
@@ -91,25 +108,25 @@ export const unwrap = <T>(result: Result<T>): T => {
 };
 
 /** Unwraps a result or returns the fallback value on failure. */
-export const unwrapOr = <T>(result: Result<T>, fallback: T): T =>
+export const unwrapOr = <T, C extends string = ErrCodeConstraint['codes']>(result: Result<T, C>, fallback: T): T =>
   result.ok ? result.data : fallback;
 
 /** Maps a successful result through a transformation function. */
-export const map = <T, U>(result: Result<T>, fn: (data: T) => U): Result<U> =>
+export const map = <T, U, C extends string = ErrCodeConstraint['codes']>(result: Result<T, C>, fn: (data: T) => U): Result<U, C> =>
   result.ok ? ok(fn(result.data)) : result;
 
 /** Chains result-returning operations (flatMap). */
-export const chain = <T, U>(
-  result: Result<T>,
-  fn: (data: T) => Result<U>
-): Result<U> => (result.ok ? fn(result.data) : result);
+export const chain = <T, U, C extends string = ErrCodeConstraint['codes']>(
+  result: Result<T, C>,
+  fn: (data: T) => Result<U, C>
+): Result<U, C> => (result.ok ? fn(result.data) : result);
 
 /** Pattern-match a result with ok/err handlers. */
-export const match = <T, U>(
-  result: Result<T>,
+export const match = <T, U, C extends string = ErrCodeConstraint['codes']>(
+  result: Result<T, C>,
   handlers: {
     ok: (data: T) => U;
-    err: (error: Err) => U;
+    err: (error: Err<C>) => U;
   }
 ): U => (result.ok ? handlers.ok(result.data) : handlers.err(result));
 
@@ -120,11 +137,15 @@ export const fromPromise = async <T>(
   try {
     return ok(await promise);
   } catch (error) {
-    return err(
-      'UNHANDLED',
-      error instanceof Error ? error.message : 'Unknown error',
-      error instanceof Error ? error : undefined
-    );
+    // Bypass code constraint: exception codes are inherently unconstrained
+    return {
+      ok: false,
+      code: 'UNHANDLED',
+      message: error instanceof Error ? error.message : 'Unknown error',
+      cause: error instanceof Error
+        ? { name: error.name, message: error.message, stack: error.stack }
+        : undefined
+    } as Err;
   }
 };
 

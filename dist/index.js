@@ -65,7 +65,15 @@ export const fromPromise = async (promise) => {
         return ok(await promise);
     }
     catch (error) {
-        return err('UNHANDLED', error instanceof Error ? error.message : 'Unknown error', error instanceof Error ? error : undefined);
+        // Bypass code constraint: exception codes are inherently unconstrained
+        return {
+            ok: false,
+            code: 'UNHANDLED',
+            message: error instanceof Error ? error.message : 'Unknown error',
+            cause: error instanceof Error
+                ? { name: error.name, message: error.message, stack: error.stack }
+                : undefined
+        };
     }
 };
 /** Combines multiple results into a single result containing all data. */
