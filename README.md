@@ -2,6 +2,9 @@
 
 Rust-inspired `Result<T>` type for explicit, type-safe error handling across service boundaries.
 
+> Part of [Warpkit](https://warpkit.dev/?utm_source=github&utm_medium=readme), my TypeScript SaaS starter.
+> I'm open for consulting on this kind of work: [bitclaw.com/hire](https://bitclaw.com/hire?utm_source=github&utm_medium=readme).
+
 ## Features
 
 - **Discriminated union** `Ok<T>` and `Err` with `.ok` boolean discriminator
