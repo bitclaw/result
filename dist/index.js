@@ -52,31 +52,34 @@ export const unwrap = (result) => {
     throw error;
 };
 /** Unwraps a result or returns the fallback value on failure. */
-export const unwrapOr = (result, fallback) => result.ok ? result.data : fallback;
+export const unwrapOr = (result, fallback) => (result.ok ? result.data : fallback);
 /** Maps a successful result through a transformation function. */
-export const map = (result, fn) => result.ok ? ok(fn(result.data)) : result;
-/** Chains result-returning operations (flatMap). */
+export const map = (result, fn) => (result.ok ? ok(fn(result.data)) : result);
+/** Chains result-returning operations (flatMap). Fails with either step's codes. */
 export const chain = (result, fn) => (result.ok ? fn(result.data) : result);
+/**
+ * Handles an error by its code, one handler per code the error can carry. A
+ * missing handler fails to compile, so a new code is handled everywhere.
+ */
+export const matchCode = (error, handlers) => handlers[error.code](error);
 /** Pattern-match a result with ok/err handlers. */
 export const match = (result, handlers) => (result.ok ? handlers.ok(result.data) : handlers.err(result));
-/** Wraps a promise into a Result, catching any rejection. */
-export const fromPromise = async (promise) => {
+export async function fromPromise(promise, code = 'UNHANDLED') {
     try {
         return ok(await promise);
     }
     catch (error) {
-        // Bypass code constraint: exception codes are inherently unconstrained
         return {
             ok: false,
-            code: 'UNHANDLED',
+            code,
             message: error instanceof Error ? error.message : 'Unknown error',
             cause: error instanceof Error
                 ? { name: error.name, message: error.message, stack: error.stack }
                 : undefined
         };
     }
-};
-/** Combines multiple results into a single result containing all data. */
+}
+/** Combines multiple results into one holding all data; fails with any input's codes. */
 export const combine = (results) => {
     const data = [];
     for (const result of results) {

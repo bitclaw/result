@@ -52,7 +52,14 @@ type Err = {
   readonly context?: Record<string, string | number | boolean>
 }
 
-type Result<T> = Ok<T> | Err
+type Result<T, C = string> = Ok<T> | Err<C>
+
+// The codes a function can fail with; each must be a registered code
+type Codes<C> = C
+
+// The data, or the codes, of a Result type
+type DataOf<R>
+type CodesOf<R>
 ```
 
 ### Constructors
@@ -83,11 +90,17 @@ const user = unwrapOr(result, defaultUser)
 // Transform the success value
 const name = map(result, user => user.name) // Result<string>
 
-// Chain result-returning operations (flatMap)
-const profile = chain(result, user => getProfile(user.id)) // Result<Profile>
+// Chain result-returning operations (flatMap); fails with either step's codes
+const profile = chain(result, user => getProfile(user.id)) // Result<Profile, C | D>
 
-// Combine multiple results into a single result
+// Combine multiple results; fails with any input's codes
 const [user, org] = unwrap(combine([getUser(id), getOrg(orgId)]))
+
+// A rejected promise fails with UNHANDLED, or the code you pass
+const res = await fromPromise(fetch(url), 'UPSTREAM_ERROR') // Result<Response, 'UPSTREAM_ERROR'>
+
+// One handler per code the error can carry; a missing one fails to compile
+const status = matchCode(result, { NOT_FOUND: () => 404, NO_CREDITS: () => 402 })
 ```
 
 ### safeCatch
@@ -127,6 +140,20 @@ if (!result.ok) {
 }
 // result.data is typed as Server
 ```
+
+### Return types name their codes
+
+A return type of `Result<T>` says the function can fail with any code. Name the
+ones it can return, and a caller that checks for any other fails to compile:
+
+```typescript
+const findNote = (id: string): Result<Note, Codes<'NOT_FOUND'>> => ...
+
+const result = findNote(id)
+if (!result.ok && result.code === 'RATE_LIMITED') {} // type error: never returned
+```
+
+A function whose return type is inferred gets its codes from its `err()` calls.
 
 ### Error codes are machine-readable
 

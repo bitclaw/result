@@ -42,6 +42,13 @@ export interface RegisteredErrCodes {
 }
 type AnyCode = string;
 type ErrCode = keyof RegisteredErrCodes extends never ? AnyCode : keyof RegisteredErrCodes;
+/**
+ * The codes a function can fail with, for its return type:
+ * `Result<Note, Codes<'NOT_FOUND' | 'UNAUTHORIZED'>>`. With registered codes,
+ * each must be one of them. A caller that checks for a code the function never
+ * returns fails to compile.
+ */
+export type Codes<C extends ErrCode> = C;
 export type Ok<T> = {
     readonly ok: true;
     readonly data: T;
@@ -70,16 +77,29 @@ export declare const unwrap: <T, C extends string = ErrCode>(result: Result<T, C
 export declare const unwrapOr: <T, C extends string = ErrCode>(result: Result<T, C>, fallback: T) => T;
 /** Maps a successful result through a transformation function. */
 export declare const map: <T, U, C extends string = ErrCode>(result: Result<T, C>, fn: (data: T) => U) => Result<U, C>;
-/** Chains result-returning operations (flatMap). */
-export declare const chain: <T, U, C extends string = ErrCode>(result: Result<T, C>, fn: (data: T) => Result<U, C>) => Result<U, C>;
+/** Chains result-returning operations (flatMap). Fails with either step's codes. */
+export declare const chain: <T, U, C extends string = ErrCode, D extends string = C>(result: Result<T, C>, fn: (data: T) => Result<U, D>) => Result<U, C | D>;
+/**
+ * Handles an error by its code, one handler per code the error can carry. A
+ * missing handler fails to compile, so a new code is handled everywhere.
+ */
+export declare const matchCode: <C extends string, U>(error: Err<C>, handlers: { readonly [K in C]: (error: Err<K>) => U; }) => U;
 /** Pattern-match a result with ok/err handlers. */
 export declare const match: <T, U, C extends string = ErrCode>(result: Result<T, C>, handlers: {
     ok: (data: T) => U;
     err: (error: Err<C>) => U;
 }) => U;
-/** Wraps a promise into a Result, catching any rejection. */
-export declare const fromPromise: <T>(promise: Promise<T>) => Promise<Result<T>>;
-/** Combines multiple results into a single result containing all data. */
-export declare const combine: <T extends readonly unknown[]>(results: { [K in keyof T]: Result<T[K]>; }) => Result<T>;
+/**
+ * Wraps a promise into a Result, catching any rejection. A rejection fails
+ * with `code`, 'UNHANDLED' when none is given; the type says which.
+ */
+export declare function fromPromise<T>(promise: Promise<T>): Promise<Result<T, 'UNHANDLED'>>;
+export declare function fromPromise<T, C extends ErrCode>(promise: Promise<T>, code: C): Promise<Result<T, C>>;
+/** The data of a successful `R`. */
+export type DataOf<R> = R extends Ok<infer T> ? T : never;
+/** The codes `R` can fail with. */
+export type CodesOf<R> = R extends Err<infer C> ? C : never;
+/** Combines multiple results into one holding all data; fails with any input's codes. */
+export declare const combine: <const R extends readonly Result<unknown, string>[]>(results: R) => Result<{ -readonly [K in keyof R]: DataOf<R[K]>; }, CodesOf<R[number]>>;
 export { safeCatch } from './safe-catch';
 //# sourceMappingURL=index.d.ts.map

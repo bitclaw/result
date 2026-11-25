@@ -1,14 +1,18 @@
 import { describe, expect, test } from 'bun:test';
 import {
+  type Codes,
   chain,
   combine,
+  type Err,
   err,
   fromPromise,
   isErr,
   isOk,
   map,
   match,
+  matchCode,
   ok,
+  type Result,
   unwrap,
   unwrapOr
 } from './index';
@@ -272,5 +276,90 @@ describe('fromPromise', () => {
     if (isErr(result)) {
       expect(result.message).toBe('Unknown error');
     }
+  });
+});
+
+// ─── narrow error codes ──────────────────────────────────────────────
+// Type checks as well as runtime ones: `bun run typecheck` fails when an
+// expected type error below stops being one, so a widened code is caught.
+
+const findNote = (id: string): Result<{ id: string }, Codes<'NOT_FOUND'>> =>
+  id === 'n1' ? ok({ id }) : err('NOT_FOUND', 'No such note');
+
+const charge = (n: number): Result<number, Codes<'NO_CREDITS'>> =>
+  n > 0 ? ok(n) : err('NO_CREDITS', 'No credits left');
+
+describe('narrow error codes', () => {
+  test('given Codes, when checking a code the function never returns, then it does not compile', () => {
+    const result = findNote('missing');
+    if (result.ok) throw new Error('expected an error');
+    expect(result.code).toBe('NOT_FOUND');
+    // @ts-expect-error findNote never fails with RATE_LIMITED
+    expect(result.code === 'RATE_LIMITED').toBe(false);
+  });
+
+  test('given Codes, when a function returns a code it does not list, then it does not compile', () => {
+    const wrong = (): Result<null, Codes<'NOT_FOUND'>> =>
+      // @ts-expect-error UNAUTHORIZED is not in the listed codes
+      err('UNAUTHORIZED', 'x');
+    expect(wrong().ok).toBe(false);
+  });
+
+  test('given two steps, when chaining, then the result fails with either code', () => {
+    const result = chain(findNote('n1'), () => charge(0));
+    const code: 'NOT_FOUND' | 'NO_CREDITS' | undefined = result.ok
+      ? undefined
+      : result.code;
+    expect(code).toBe('NO_CREDITS');
+    // @ts-expect-error chain fails only with the two steps' codes
+    expect(!result.ok && result.code === 'RATE_LIMITED').toBe(false);
+  });
+
+  test('given results with different codes, when combining, then the result carries both', () => {
+    const result = combine([findNote('n1'), charge(0)] as const);
+    const code: 'NOT_FOUND' | 'NO_CREDITS' | undefined = result.ok
+      ? undefined
+      : result.code;
+    expect(code).toBe('NO_CREDITS');
+    const both = combine([findNote('n1'), charge(2)] as const);
+    expect(both.ok && both.data).toEqual([{ id: 'n1' }, 2]);
+  });
+
+  test('given a code, when a promise rejects, then fromPromise fails with that code', async () => {
+    const result = await fromPromise(
+      Promise.reject(new Error('down')),
+      'UPSTREAM'
+    );
+    const code: 'UPSTREAM' | undefined = result.ok ? undefined : result.code;
+    expect(code).toBe('UPSTREAM');
+  });
+});
+
+describe('matchCode', () => {
+  const failure = (
+    code: 'NOT_FOUND' | 'NO_CREDITS'
+  ): Err<'NOT_FOUND' | 'NO_CREDITS'> => err(code, 'x');
+
+  test('given an error, when matching, then calls the handler for its code', () => {
+    const status = (code: 'NOT_FOUND' | 'NO_CREDITS') =>
+      matchCode(failure(code), { NOT_FOUND: () => 404, NO_CREDITS: () => 402 });
+    expect(status('NOT_FOUND')).toBe(404);
+    expect(status('NO_CREDITS')).toBe(402);
+  });
+
+  test('given a missing handler, when matching, then it does not compile', () => {
+    // @ts-expect-error NO_CREDITS has no handler
+    const status = matchCode(failure('NOT_FOUND'), { NOT_FOUND: () => 404 });
+    expect(status).toBe(404);
+  });
+
+  test('given a handler for a code the error cannot carry, when matching, then it does not compile', () => {
+    const status = matchCode(failure('NOT_FOUND'), {
+      NOT_FOUND: () => 404,
+      NO_CREDITS: () => 402,
+      // @ts-expect-error RATE_LIMITED is not a code this error can carry
+      RATE_LIMITED: () => 429
+    });
+    expect(status).toBe(404);
   });
 });
