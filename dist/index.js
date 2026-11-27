@@ -92,4 +92,4 @@ export const combine = (results) => {
 // ---------------------------------------------------------------------------
 // safeCatch async handler wrapper
 // ---------------------------------------------------------------------------
-export { safeCatch } from './safe-catch';
+export { safeCatch } from './safe-catch.js';

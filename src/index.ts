@@ -216,4 +216,4 @@ export const combine = <const R extends readonly Result<unknown, string>[]>(
 // safeCatch async handler wrapper
 // ---------------------------------------------------------------------------
 
-export { safeCatch } from './safe-catch';
+export { safeCatch } from './safe-catch.js';

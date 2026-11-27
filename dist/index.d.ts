@@ -101,5 +101,5 @@ export type DataOf<R> = R extends Ok<infer T> ? T : never;
 export type CodesOf<R> = R extends Err<infer C> ? C : never;
 /** Combines multiple results into one holding all data; fails with any input's codes. */
 export declare const combine: <const R extends readonly Result<unknown, string>[]>(results: R) => Result<{ -readonly [K in keyof R]: DataOf<R[K]>; }, CodesOf<R[number]>>;
-export { safeCatch } from './safe-catch';
+export { safeCatch } from './safe-catch.js';
 //# sourceMappingURL=index.d.ts.map
